@@ -30,7 +30,7 @@
 // External references
 extern volatile bool wait_for_user, wait_for_heatup;
 void quickstop_stepper();
-void host_response_handler(char c);
+void host_response_handler(const uint8_t response);
 
 class EmergencyParser {
 
@@ -140,14 +140,9 @@ public:
 
       case EP_M876:
         switch(c) {
-          case ' ':
-            break;
-          case 'S':
-            state = EP_M876S;
-            break;
-          default:
-            state =  EP_IGNORE;
-            break;
+          case ' ': break;
+          case 'S': state = EP_M876S; break;
+          default:  state = EP_IGNORE; break;
         }
         break;
 
@@ -174,7 +169,7 @@ public:
             case EP_M112: killed_by_M112 = true; break;
             case EP_M410: quickstop_stepper(); break;
             #if ENABLED(HOST_PROMPT_SUPPORT)
-              case EP_M876SN: host_response_handler(M876_SChar); break;
+              case EP_M876SN: host_response_handler(M876_SChar - '0'); break;
             #endif
             default: break;
           }

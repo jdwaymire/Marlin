@@ -31,28 +31,11 @@
  * M412: Enable / Disable filament runout detection
  */
 void GcodeSuite::M412() {
-  if (parser.seen('S')) {
-    runout.reset();
-    if(parser.value_bool()) {
-      runout.enabled = true;
-      SERIAL_ECHOLN("Runout Enabled");
-    }
-    else {
-      runout.enabled = false;
-      SERIAL_ECHOLN("Runout Disabled");
-    }
-    
-  }
-  else if (parser.seen('R')) {
-    runout.reset();
-    SERIAL_ECHOLN("Runout Reset");
-  }
-  else if (parser.seen('H')) {
-    runout.host_handling = parser.value_bool();
-    if(runout.host_handling)
-      SERIAL_ECHOLN("Runout Host Mode");
-    else
-      SERIAL_ECHOLN("Runout Local Mode");
+  if (parser.seen("HRS")) {
+    if (parser.seen('H')) runout.host_handling = parser.value_bool();
+    const bool seenR = parser.seen('R'), seenS = parser.seen('S');
+    if (seenR || seenS) runout.reset();
+    if (seenS) runout.enabled = parser.value_bool();
   }
   else {
     SERIAL_ECHO_START();

@@ -40,9 +40,9 @@
 
 class FilamentMonitorBase {
   public:
-    static bool enabled;
-    static bool filament_ran_out;
-    static bool host_handling;
+    static bool enabled,
+                filament_ran_out,
+                host_handling;
 };
 
 template<class RESPONSE_T, class SENSOR_T>

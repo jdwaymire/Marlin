@@ -315,7 +315,7 @@ void disable_all_steppers() {
   disable_e_steppers();
 }
 
-#if HOST_ACTION_COMMANDS
+#if ENABLED(HOST_ACTION_COMMANDS)
 
   void host_action(const char * const pstr, const bool eol=true) {
     SERIAL_ECHOPGM("//action:");
@@ -341,9 +341,33 @@ void disable_all_steppers() {
   #ifdef ACTION_ON_CANCEL
     void host_action_cancel() { host_action(PSTR(ACTION_ON_CANCEL)); }
   #endif
+
+  #if ENABLED(HOST_PROMPT_SUPPORT)
+    void host_action_prompt(const char * const ptype, const bool eol=true) {
+      host_action(PSTR("prompt_"), false);
+      serialprintPGM(ptype);
+      if (eol) SERIAL_EOL();
+    }
+    void host_action_prompt_plus(const char * const ptype, const char * const pstr, const bool eol=true) {
+      host_action_prompt(ptype, false);
+      SERIAL_CHAR(' ');
+      serialprintPGM(pstr);
+      if (eol) SERIAL_EOL();
+    }
+    void host_action_prompt_begin(const char * const pstr, const bool eol=true) {
+      host_action_prompt_plus(PSTR("begin"), pstr, eol);
+    }
+    void host_action_prompt_button(const char * const pstr) {
+      host_action_prompt_plus(PSTR("button"), pstr);
+    }
+    void host_action_prompt_end() { host_action_prompt(PSTR("end")); }
+    void host_action_prompt_show() { host_action_prompt(PSTR("show")); }
+  #endif
+
 #endif  // HOST_ACTION_COMMANDS
 
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
+
   void event_filament_runout(const bool eol/*=true*/) {
     #if ENABLED(EXTENSIBLE_UI)
       ExtUI::onFilamentRunout(ExtUI::getActiveTool());
@@ -353,18 +377,20 @@ void disable_all_steppers() {
     #endif
     #if ENABLED(HOST_PROMPT_SUPPORT)
       host_prompt_reason = PROMPT_FILAMENT_RUNOUT_TRIPPED;
-      SERIAL_ECHOLN("//action:prompt_end"); //ensure any current prompt is closed before we begin a new one
-      SERIAL_ECHO("//action:prompt_begin FilamentRunout T");
+      host_action_prompt_end();
+      host_action_prompt_begin(PSTR("FilamentRunout T"), false);
       #if NUM_RUNOUT_SENSORS > 1
-        SERIAL_ECHOLN(int(active_extruder));
+        SERIAL_ECHO(int(active_extruder));
       #else
-        SERIAL_ECHOLN('0');
+        SERIAL_CHAR('0');
       #endif
-      SERIAL_ECHOLN("//action:prompt_show");
+      SERIAL_EOL();
+      host_action_prompt_show();
     #endif
-    if(!runout.host_handling)
+    if (!runout.host_handling)
       enqueue_and_echo_commands_P(PSTR(FILAMENT_RUNOUT_SCRIPT));
   }
+
 #endif
 
 #if ENABLED(G29_RETRY_AND_RECOVER)
@@ -382,13 +408,13 @@ void disable_all_steppers() {
       kill(PSTR(MSG_ERR_PROBING_FAILED));
     #endif
   }
-  
+
   void event_probe_recover() {
     #if ENABLED(HOST_PROMPT_SUPPORT)
       host_prompt_reason = PROMPT_G29_RETRY;
-      SERIAL_ECHOLN("//action:prompt_end"); //ensure any current prompt is closed before we begin a new one
-       SERIAL_ECHOLN("//action:prompt_begin G29 Retrying");
-      SERIAL_ECHOLN("//action:prompt_show");
+      host_action_prompt_end();   // Close current prompt
+      host_action_prompt_begin(PSTR("G29 Retrying"));
+      host_action_prompt_show();
     #endif
     #ifdef G29_RECOVER_COMMANDS
       process_subcommands_now_P(PSTR(G29_RECOVER_COMMANDS));
@@ -400,48 +426,51 @@ void disable_all_steppers() {
 #endif
 
 #if ENABLED(HOST_PROMPT_SUPPORT)
+
+  inline void say_m876_response(const char * const pstr) {
+    SERIAL_ECHOPGM("M876 Responding PROMPT_");
+    serialprintPGM(pstr);
+    SERIAL_EOL();
+  }
+
   char host_prompt_reason = PROMPT_NOT_DEFINED;
-  void host_response_handler(char c) { host_response_handler((int)strtol(&c, NULL, 1)); }
-  void host_response_handler(int response) {
-    switch(host_prompt_reason)
-    {
+  void host_response_handler(const uint8_t response) {
+    switch (host_prompt_reason) {
       case PROMPT_FILAMENT_RUNOUT_TRIPPED:
-        if(response==0) {
+        if (response == 0)
           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;
-        } 
-        else if (response==1) {
+        else if (response == 1) {
           #if ENABLED(FILAMENT_RUNOUT_SENSOR)
             runout.enabled = false;
             runout.reset();
           #endif
           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_RESUME_PRINT;
         }
-        SERIAL_ECHOLN("M876 Responding PROMPT_FILAMENT_RUNOUT_TRIPPED");
+        say_m876_response(PSTR("FILAMENT_RUNOUT_TRIPPED"));
         break;
       case PROMPT_FILAMENT_RUNOUT_CONTINUE:
-        if(response==0) {
+        if (response == 0)
           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;
-        } 
-        else if (response==1) {
+        else if (response == 1)
           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_RESUME_PRINT;
-        }
-        SERIAL_ECHOLN("M876 Responding PROMPT_FILAMENT_RUNOUT_CONTINUE");
+        say_m876_response(PSTR("FILAMENT_RUNOUT_CONTINUE"));
         break;
       case PROMPT_FILAMENT_RUNOUT_REHEAT:
         wait_for_user = false;
-        SERIAL_ECHOLN("M876 Responding PROMPT_FILAMENT_RUNOUT_REHEAT");
+        say_m876_response(PSTR("FILAMENT_RUNOUT_REHEAT"));
         break;
       case PROMPT_LCD_PAUSE_RESUME:
-        SERIAL_ECHOLN("M876 Responding PROMPT_LCD_PAUSE_RESUME");
+        say_m876_response(PSTR("LCD_PAUSE_RESUME"));
         break;
       case PROMPT_GCODE_PAUSE:
-        SERIAL_ECHOLN("M876 Responding PROMPT_GCODE_PAUSE");
+        say_m876_response(PSTR("GCODE_PAUSE"));
         break;
       default:
         break;
     }
   }
-#endif
+
+#endif // HOST_PROMPT_SUPPORT
 
 /**
  * Manage several activities:

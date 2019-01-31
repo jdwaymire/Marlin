@@ -370,7 +370,7 @@ void protected_pin_err();
   inline void suicide() { OUT_WRITE(SUICIDE_PIN, LOW); }
 #endif
 
-#if HOST_ACTION_COMMANDS
+#if ENABLED(HOST_ACTION_COMMANDS)
   #ifdef ACTION_ON_KILL
     void host_action_kill();
   #endif
@@ -389,6 +389,12 @@ void protected_pin_err();
   #ifdef ACTION_ON_CANCEL
     void host_action_cancel();
   #endif
+  #if ENABLED(HOST_PROMPT_SUPPORT)
+    void host_action_prompt_begin(const char * const pstr, const bool eol=true);
+    void host_action_prompt_button(const char * const pstr);
+    void host_action_prompt_end();
+    void host_action_prompt_show();
+  #endif
 #endif
 
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
@@ -396,7 +402,7 @@ void protected_pin_err();
 #endif
 
 #if ENABLED(G29_RETRY_AND_RECOVER)
-   void event_probe_recover();
+  void event_probe_recover();
   void event_probe_failure();
 #endif
 
@@ -412,6 +418,5 @@ void protected_pin_err();
   };
 
   extern char host_prompt_reason;
-  void host_response_handler(char c);
-  void host_response_handler(int response);
+  void host_response_handler(const uint8_t response);
 #endif
