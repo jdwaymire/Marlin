@@ -324,22 +324,22 @@ void disable_all_steppers() {
   }
 
   #ifdef ACTION_ON_KILL
-    void host_action_kill() { host_action(PSTR(ACTION_ON_KILL)); }
+    void host_action_kill(const bool eol=true) { host_action(PSTR(ACTION_ON_KILL), eol); }
   #endif
   #ifdef ACTION_ON_PAUSE
-    void host_action_pause() { host_action(PSTR(ACTION_ON_PAUSE)); }
+    void host_action_pause(const bool eol=true) { host_action(PSTR(ACTION_ON_PAUSE), eol); }
   #endif
   #ifdef ACTION_ON_PAUSED
-    void host_action_paused() { host_action(PSTR(ACTION_ON_PAUSED)); }
+    void host_action_paused(const bool eol=true) { host_action(PSTR(ACTION_ON_PAUSED), eol); }
   #endif
   #ifdef ACTION_ON_RESUME
-    void host_action_resume() { host_action(PSTR(ACTION_ON_RESUME)); }
+    void host_action_resume(const bool eol=true) { host_action(PSTR(ACTION_ON_RESUME), eol); }
   #endif
   #ifdef ACTION_ON_RESUMED
-    void host_action_resumed() { host_action(PSTR(ACTION_ON_RESUMED)); }
+    void host_action_resumed(const bool eol=true) { host_action(PSTR(ACTION_ON_RESUMED), eol); }
   #endif
   #ifdef ACTION_ON_CANCEL
-    void host_action_cancel() { host_action(PSTR(ACTION_ON_CANCEL)); }
+    void host_action_cancel(const bool eol=true) { host_action(PSTR(ACTION_ON_CANCEL), eol); }
   #endif
 
   #if ENABLED(HOST_PROMPT_SUPPORT)
@@ -368,30 +368,57 @@ void disable_all_steppers() {
 
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
 
-  void event_filament_runout(const bool eol/*=true*/) {
+  void event_filament_runout() {
     #if ENABLED(EXTENSIBLE_UI)
       ExtUI::onFilamentRunout(ExtUI::getActiveTool());
     #endif
-    #ifdef ACTION_ON_G29_FAILURE
-      host_action(PSTR(ACTION_ON_FILAMENT_RUNOUT), eol);
+
+    static char tool;
+    #if NUM_RUNOUT_SENSORS > 1
+      tool = (char)int(active_extruder));
+    #else
+      tool = '0';
     #endif
+    //action:out_of_filament
     #if ENABLED(HOST_PROMPT_SUPPORT)
       host_prompt_reason = PROMPT_FILAMENT_RUNOUT_TRIPPED;
       host_action_prompt_end();
       host_action_prompt_begin(PSTR("FilamentRunout T"), false);
-      #if NUM_RUNOUT_SENSORS > 1
-        SERIAL_ECHO(int(active_extruder));
-      #else
-        SERIAL_CHAR('0');
-      #endif
+      SERIAL_CHAR(tool);
       SERIAL_EOL();
       host_action_prompt_show();
     #endif
-    if (!runout.host_handling)
+
+    #if ENABLED(HOST_ACTION_COMMANDS)
+      if ( !runout.host_handling && strstr(FILAMENT_RUNOUT_SCRIPT, "M600") || strstr(FILAMENT_RUNOUT_SCRIPT, "M125") || (strstr(FILAMENT_RUNOUT_SCRIPT, "M25") && 
+      #if ENABLED(ADVANCED_PAUSE_FEATURE)
+        true
+      #else
+        false
+      #endif
+       ))
+        host_action_paused(false);
+      else {
+        // Legacy Repetier command to be used until newer version support standard dialog
+        // Will be removed at a later date when pause command also triggers dialog
+        SERIAL_ECHOPGM("//action:out_of_filament T");
+        SERIAL_CHAR(tool);
+        SERIAL_EOL();
+
+        host_action_pause(false);
+      }
+      
+      SERIAL_CHAR(" ");
+      SERIAL_ECHOPGM(ACTION_REASON_ON_FILAMENT_RUNOUT);
+      SERIAL_CHAR(tool);
+      SERIAL_EOL();
+    #endif
+
+    if (!runout.host_handling) 
       enqueue_and_echo_commands_P(PSTR(FILAMENT_RUNOUT_SCRIPT));
   }
 
-#endif
+#endif // FILAMENT_RUNOUT_SENSOR
 
 #if ENABLED(G29_RETRY_AND_RECOVER)
   void event_probe_failure() {
@@ -411,7 +438,7 @@ void disable_all_steppers() {
 
   void event_probe_recover() {
     #if ENABLED(HOST_PROMPT_SUPPORT)
-      host_prompt_reason = PROMPT_G29_RETRY;
+      host_prompt_reason = PROMPT_INFORMATIONAL;
       host_action_prompt_end();   // Close current prompt
       host_action_prompt_begin(PSTR("G29 Retrying"));
       host_action_prompt_show();
@@ -459,15 +486,18 @@ void disable_all_steppers() {
         wait_for_user = false;
         say_m876_response(PSTR("FILAMENT_RUNOUT_REHEAT"));
         break;
-      case PROMPT_LCD_PAUSE_RESUME:
+      case PROMPT_PAUSE_RESUME:
+        enqueue_and_echo_commands_P(PSTR("M24"));
         say_m876_response(PSTR("LCD_PAUSE_RESUME"));
         break;
-      case PROMPT_GCODE_PAUSE:
-        say_m876_response(PSTR("GCODE_PAUSE"));
+      case PROMPT_INFORMATIONAL:
+        say_m876_response(PSTR("GCODE_INFO"));
         break;
       default:
+        say_m876_response(PSTR("UNKNOWN STATE"));
         break;
     }
+    host_prompt_reason = PROMPT_NOT_DEFINED; // Clear prompt reason after its been handled
   }
 
 #endif // HOST_PROMPT_SUPPORT

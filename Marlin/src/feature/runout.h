@@ -93,7 +93,7 @@ class TFilamentMonitor : public FilamentMonitorBase {
         #endif
         if (ran_out) {
           filament_ran_out = true;
-          event_filament_runout(false);
+          event_filament_runout();
           planner.synchronize();
         }
       }

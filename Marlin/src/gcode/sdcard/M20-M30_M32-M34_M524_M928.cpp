@@ -103,6 +103,15 @@ void GcodeSuite::M24() {
     print_job_timer.start();
   }
 
+  #if ENABLED(HOST_PROMPT_SUPPORT)
+    if( host_prompt_reason == PROMPT_NOT_DEFINED ) {
+      host_prompt_reason = PROMPT_INFORMATIONAL;
+      host_action_prompt_end();
+      host_action_prompt_begin(PSTR("Resuming From Gcode"));
+      host_action_prompt_show();
+      }
+  #endif
+
   #ifdef ACTION_ON_RESUME
     host_action_resume();
   #endif
@@ -125,6 +134,16 @@ void GcodeSuite::M25() {
   #else
     print_job_timer.pause();
     ui.reset_status();
+
+    #if ENABLED(HOST_PROMPT_SUPPORT)
+      if( host_prompt_reason == PROMPT_NOT_DEFINED ) {
+        host_prompt_reason = PROMPT_PAUSE_RESUME;
+        host_action_prompt_end();
+        host_action_prompt_begin(PSTR("Paused By GCODE"));
+        host_action_prompt_button(PSTR("Resume"));
+        host_action_prompt_show();
+      }
+    #endif
 
     #ifdef ACTION_ON_PAUSE
       host_action_pause();

@@ -326,7 +326,14 @@ bool pause_print(const float &retract, const point_t &park_point, const float &u
   #elif defined(ACTION_ON_PAUSE)
     host_action_pause();
   #endif
-
+  #if ENABLED(HOST_PROMPT_SUPPORT)
+      if( host_prompt_reason == PROMPT_NOT_DEFINED ) {
+        host_prompt_reason = PROMPT_INFORMATIONAL;
+        host_action_prompt_end();
+        host_action_prompt_begin(PSTR("Pausing..."));
+        host_action_prompt_show();
+      }
+  #endif
   if (!DEBUGGING(DRYRUN) && unload_length && thermalManager.targetTooColdToExtrude(active_extruder)) {
     SERIAL_ECHO_MSG(MSG_ERR_HOTEND_TOO_COLD);
 
@@ -603,6 +610,15 @@ void resume_print(const float &slow_load_length/*=0*/, const float &fast_load_le
   #endif
 
   --did_pause_print;
+
+  #if ENABLED(HOST_PROMPT_SUPPORT)
+    if( host_prompt_reason == PROMPT_NOT_DEFINED ) {
+      host_prompt_reason = PROMPT_INFORMATIONAL;
+      host_action_prompt_end();
+      host_action_prompt_begin(PSTR("Resuming From Park"));
+      host_action_prompt_show();
+      }
+  #endif
 
   #if ENABLED(SDSUPPORT)
     if (did_pause_print) {
