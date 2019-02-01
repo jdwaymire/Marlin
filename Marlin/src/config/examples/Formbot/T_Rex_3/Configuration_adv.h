@@ -1935,32 +1935,23 @@
 #endif
 
 /**
- * Specify an action command to send to the host when the printer is killed.
- * Will be sent in the form '//action:ACTION_ON_KILL', e.g. '//action:poweroff'.
- * The host must be configured to handle the action command.
+ * Action Command Support
+ * Defines host streamer action commands in compliance with standards on RepRap Wiki
+ * https://reprap.org/wiki/G-code#Action_commands
+ * Including : poweroff, pause, paused, resume, resumed, and cancel
+ * If G29 retry and recover is enabled, add probe_rewipe and probe_failed
+ * 
+ * Certain features may add reason codes to extend the commands above when supported.
+ * 
+ * Host Prompt Support allows setting dialogs for responses to actions typically
+ * reserved for handling on the local LCD in combination with the emergency parser
+ * This allows filament runout and other parking actions to be resolved from either
+ * the host or machine side.
  */
-//#define ACTION_ON_KILL "poweroff"
-
-/**
- * Specify an action command to send to the host on pause and resume.
- * Will be sent in the form '//action:ACTION_ON_PAUSE', e.g. '//action:pause'.
- * The host must be configured to handle the action command.
- *
- *   PAUSE / RESUME : Used in non-parking scenarios where the host handles the
- *                    action while Marlin continues to process G-Code. (M24/M25)
- *
- * PAUSED / RESUMED : Used in scenarios where Marlin handles pause and filament-
- *                    change actions and the host needs to stop sending commands
- *                    until the machine is ready to resume. (M125/M600)
- *
- *           CANCEL : Instructs the host to abort the print job. Used when the
- *                    print is canceled from the LCD menu.
- */
-#define ACTION_ON_PAUSE   "pause"
-#define ACTION_ON_RESUME  "resume"
-//#define ACTION_ON_PAUSED  "paused"
-//#define ACTION_ON_RESUMED "resumed"
-//#define ACTION_ON_CANCEL  "cancel"
+//#define HOST_ACTION_COMMANDS
+#if ENABLED(HOST_ACTION_COMMANDS)
+  #define HOST_PROMPT_SUPPORT
+#endif
 
 //===========================================================================
 //====================== I2C Position Encoder Settings ======================
