@@ -47,11 +47,11 @@
   #ifndef ACTION_ON_PAUSE
     #define ACTION_ON_PAUSE   "pause"
   #endif
-  #ifndef ACTION_ON_RESUME
-    #define ACTION_ON_RESUME  "resume"
-  #endif
   #ifndef ACTION_ON_PAUSED
     #define ACTION_ON_PAUSED  "paused"
+  #endif
+  #ifndef ACTION_ON_RESUME
+    #define ACTION_ON_RESUME  "resume"
   #endif
   #ifndef ACTION_ON_RESUMED
     #define ACTION_ON_RESUMED "resumed"
@@ -59,7 +59,13 @@
   #ifndef ACTION_ON_CANCEL
     #define ACTION_ON_CANCEL  "cancel"
   #endif
+  #ifndef ACTION_ON_KILL
+    #define ACTION_ON_KILL    "poweroff"
+  #endif
   #if ENABLED(FILAMENT_RUNOUT_SENSOR)
+    #ifndef ACTION_ON_FILAMENT_RUNOUT
+      #define ACTION_ON_FILAMENT_RUNOUT "filament_runout"
+    #endif
     #ifndef ACTION_REASON_ON_FILAMENT_RUNOUT
       #define ACTION_REASON_ON_FILAMENT_RUNOUT "filament_runout"
     #endif

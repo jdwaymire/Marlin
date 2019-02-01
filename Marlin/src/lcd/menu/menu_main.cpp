@@ -48,13 +48,7 @@ void lcd_pause() {
   #endif
 
   #if ENABLED(HOST_PROMPT_SUPPORT)
-    if( host_prompt_reason == PROMPT_NOT_DEFINED ) {
-      host_prompt_reason = PROMPT_PAUSE_RESUME;
-      host_action_prompt_end();
-      host_action_prompt_begin(PSTR("Paused By LCD"));
-      host_action_prompt_button(PSTR("Resume"));
-      host_action_prompt_show();
-      }
+    host_prompt_open(PROMPT_PAUSE_RESUME, PSTR("UI Pause"), PSTR("Resume"));
   #endif
 
   #if ENABLED(PARK_HEAD_ON_PAUSE)
@@ -86,12 +80,7 @@ void lcd_stop() {
     host_action_cancel();
   #endif
   #if ENABLED(HOST_PROMPT_SUPPORT)
-    if( host_prompt_reason == PROMPT_NOT_DEFINED ) {
-      host_prompt_reason = PROMPT_INFORMATIONAL;
-      host_action_prompt_end();
-      host_action_prompt_begin(PSTR("Print Aborted From Machine"));
-      host_action_prompt_show();
-    }
+    host_prompt_open(PROMPT_INFO, PSTR("UI Abort"));
   #endif
   ui.set_status_P(PSTR(MSG_PRINT_ABORTED), -1);
   ui.return_to_status();
@@ -161,7 +150,7 @@ void menu_main() {
       }
     #endif // !HAS_ENCODER_WHEEL && SDSUPPORT
 
-    #if ENABLED(SDSUPPORT) || defined(ACTION_ON_RESUME)
+    #if ENABLED(SDSUPPORT) || ENABLED(HOST_ACTION_COMMANDS)
       #if ENABLED(SDSUPPORT)
         if (card.isFileOpen() && card.isPaused())
       #endif

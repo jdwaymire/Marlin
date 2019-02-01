@@ -324,22 +324,22 @@ void disable_all_steppers() {
   }
 
   #ifdef ACTION_ON_KILL
-    void host_action_kill(const bool eol=true) { host_action(PSTR(ACTION_ON_KILL), eol); }
+    void host_action_kill() { host_action(PSTR(ACTION_ON_KILL)); }
   #endif
   #ifdef ACTION_ON_PAUSE
-    void host_action_pause(const bool eol=true) { host_action(PSTR(ACTION_ON_PAUSE), eol); }
+    void host_action_pause(const bool eol/*=true*/) { host_action(PSTR(ACTION_ON_PAUSE), eol); }
   #endif
   #ifdef ACTION_ON_PAUSED
-    void host_action_paused(const bool eol=true) { host_action(PSTR(ACTION_ON_PAUSED), eol); }
+    void host_action_paused(const bool eol/*=true*/) { host_action(PSTR(ACTION_ON_PAUSED), eol); }
   #endif
   #ifdef ACTION_ON_RESUME
-    void host_action_resume(const bool eol=true) { host_action(PSTR(ACTION_ON_RESUME), eol); }
+    void host_action_resume() { host_action(PSTR(ACTION_ON_RESUME)); }
   #endif
   #ifdef ACTION_ON_RESUMED
-    void host_action_resumed(const bool eol=true) { host_action(PSTR(ACTION_ON_RESUMED), eol); }
+    void host_action_resumed() { host_action(PSTR(ACTION_ON_RESUMED)); }
   #endif
   #ifdef ACTION_ON_CANCEL
-    void host_action_cancel(const bool eol=true) { host_action(PSTR(ACTION_ON_CANCEL), eol); }
+    void host_action_cancel() { host_action(PSTR(ACTION_ON_CANCEL)); }
   #endif
 
   #if ENABLED(HOST_PROMPT_SUPPORT)
@@ -354,14 +354,17 @@ void disable_all_steppers() {
       serialprintPGM(pstr);
       if (eol) SERIAL_EOL();
     }
-    void host_action_prompt_begin(const char * const pstr, const bool eol=true) {
-      host_action_prompt_plus(PSTR("begin"), pstr, eol);
-    }
-    void host_action_prompt_button(const char * const pstr) {
-      host_action_prompt_plus(PSTR("button"), pstr);
-    }
+    void host_action_prompt_begin(const char * const pstr, const bool eol/*=true*/) { host_action_prompt_plus(PSTR("begin"), pstr, eol); }
+    void host_action_prompt_button(const char * const pstr) { host_action_prompt_plus(PSTR("button"), pstr); }
     void host_action_prompt_end() { host_action_prompt(PSTR("end")); }
     void host_action_prompt_show() { host_action_prompt(PSTR("show")); }
+    void host_prompt_do(const PromptReason reason, const char * const pstr, const char * const pbtn/*=NULL*/) {
+      host_prompt_reason = reason;
+      host_action_prompt_end();
+      host_action_prompt_begin(pstr);
+      if (pbtn) host_action_prompt_button(pbtn);
+      host_action_prompt_show();
+    }
   #endif
 
 #endif  // HOST_ACTION_COMMANDS
@@ -373,15 +376,15 @@ void disable_all_steppers() {
       ExtUI::onFilamentRunout(ExtUI::getActiveTool());
     #endif
 
-    static char tool;
-    #if NUM_RUNOUT_SENSORS > 1
-      tool = (char)int(active_extruder));
-    #else
-      tool = '0';
-    #endif
+    const char tool = '0'
+      #if NUM_RUNOUT_SENSORS > 1
+        + active_extruder
+      #endif
+    ;
+
     //action:out_of_filament
     #if ENABLED(HOST_PROMPT_SUPPORT)
-      host_prompt_reason = PROMPT_FILAMENT_RUNOUT_TRIPPED;
+      host_prompt_reason = PROMPT_FILAMENT_RUNOUT;
       host_action_prompt_end();
       host_action_prompt_begin(PSTR("FilamentRunout T"), false);
       SERIAL_CHAR(tool);
@@ -390,29 +393,32 @@ void disable_all_steppers() {
     #endif
 
     #if ENABLED(HOST_ACTION_COMMANDS)
-      if ( !runout.host_handling && strstr(FILAMENT_RUNOUT_SCRIPT, "M600") || strstr(FILAMENT_RUNOUT_SCRIPT, "M125") || (strstr(FILAMENT_RUNOUT_SCRIPT, "M25") && 
-      #if ENABLED(ADVANCED_PAUSE_FEATURE)
-        true
-      #else
-        false
-      #endif
-       ))
+      if (!runout.host_handling
+        && ( strstr(FILAMENT_RUNOUT_SCRIPT, "M600")
+          || strstr(FILAMENT_RUNOUT_SCRIPT, "M125")
+          #if ENABLED(ADVANCED_PAUSE_FEATURE)
+            || strstr(FILAMENT_RUNOUT_SCRIPT, "M25")
+          #endif
+        )
+      ) {
         host_action_paused(false);
+      }
       else {
         // Legacy Repetier command to be used until newer version support standard dialog
         // Will be removed at a later date when pause command also triggers dialog
-        SERIAL_ECHOPGM("//action:out_of_filament T");
-        SERIAL_CHAR(tool);
-        SERIAL_EOL();
+        #ifdef ACTION_ON_FILAMENT_RUNOUT
+          host_action(PSTR(ACTION_ON_FILAMENT_RUNOUT " T"), false);
+          SERIAL_CHAR(tool);
+          SERIAL_EOL();
+        #endif
 
         host_action_pause(false);
       }
-      
-      SERIAL_CHAR(" ");
-      SERIAL_ECHOPGM(ACTION_REASON_ON_FILAMENT_RUNOUT);
+      SERIAL_ECHOPGM(" " ACTION_REASON_ON_FILAMENT_RUNOUT " ");
       SERIAL_CHAR(tool);
       SERIAL_EOL();
-    #endif
+
+    #endif // HOST_ACTION_COMMANDS
 
     if (!runout.host_handling) 
       enqueue_and_echo_commands_P(PSTR(FILAMENT_RUNOUT_SCRIPT));
@@ -438,10 +444,7 @@ void disable_all_steppers() {
 
   void event_probe_recover() {
     #if ENABLED(HOST_PROMPT_SUPPORT)
-      host_prompt_reason = PROMPT_INFORMATIONAL;
-      host_action_prompt_end();   // Close current prompt
-      host_action_prompt_begin(PSTR("G29 Retrying"));
-      host_action_prompt_show();
+      host_prompt_do(PROMPT_INFO, PSTR("G29 Retrying"));
     #endif
     #ifdef G29_RECOVER_COMMANDS
       process_subcommands_now_P(PSTR(G29_RECOVER_COMMANDS));
@@ -460,10 +463,10 @@ void disable_all_steppers() {
     SERIAL_EOL();
   }
 
-  char host_prompt_reason = PROMPT_NOT_DEFINED;
-  void host_response_handler(const uint8_t response) {
+  PromptReason host_prompt_reason = PROMPT_NOT_DEFINED;
+  void host_response_handler(const PromptReason response) {
     switch (host_prompt_reason) {
-      case PROMPT_FILAMENT_RUNOUT_TRIPPED:
+      case PROMPT_FILAMENT_RUNOUT:
         if (response == 0)
           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;
         else if (response == 1) {
@@ -473,7 +476,7 @@ void disable_all_steppers() {
           #endif
           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_RESUME_PRINT;
         }
-        say_m876_response(PSTR("FILAMENT_RUNOUT_TRIPPED"));
+        say_m876_response(PSTR("FILAMENT_RUNOUT"));
         break;
       case PROMPT_FILAMENT_RUNOUT_CONTINUE:
         if (response == 0)
@@ -490,7 +493,7 @@ void disable_all_steppers() {
         enqueue_and_echo_commands_P(PSTR("M24"));
         say_m876_response(PSTR("LCD_PAUSE_RESUME"));
         break;
-      case PROMPT_INFORMATIONAL:
+      case PROMPT_INFO:
         say_m876_response(PSTR("GCODE_INFO"));
         break;
       default:

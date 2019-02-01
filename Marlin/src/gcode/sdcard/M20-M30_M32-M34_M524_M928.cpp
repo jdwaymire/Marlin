@@ -104,12 +104,7 @@ void GcodeSuite::M24() {
   }
 
   #if ENABLED(HOST_PROMPT_SUPPORT)
-    if( host_prompt_reason == PROMPT_NOT_DEFINED ) {
-      host_prompt_reason = PROMPT_INFORMATIONAL;
-      host_action_prompt_end();
-      host_action_prompt_begin(PSTR("Resuming From Gcode"));
-      host_action_prompt_show();
-      }
+    host_prompt_open(PROMPT_INFO, PSTR("Resume SD"));
   #endif
 
   #ifdef ACTION_ON_RESUME
@@ -136,13 +131,7 @@ void GcodeSuite::M25() {
     ui.reset_status();
 
     #if ENABLED(HOST_PROMPT_SUPPORT)
-      if( host_prompt_reason == PROMPT_NOT_DEFINED ) {
-        host_prompt_reason = PROMPT_PAUSE_RESUME;
-        host_action_prompt_end();
-        host_action_prompt_begin(PSTR("Paused By GCODE"));
-        host_action_prompt_button(PSTR("Resume"));
-        host_action_prompt_show();
-      }
+      host_prompt_open(PROMPT_PAUSE_RESUME, PSTR("Pause SD"), PSTR("Resume"));
     #endif
 
     #ifdef ACTION_ON_PAUSE

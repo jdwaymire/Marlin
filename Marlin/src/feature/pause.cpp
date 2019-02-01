@@ -327,13 +327,9 @@ bool pause_print(const float &retract, const point_t &park_point, const float &u
     host_action_pause();
   #endif
   #if ENABLED(HOST_PROMPT_SUPPORT)
-      if( host_prompt_reason == PROMPT_NOT_DEFINED ) {
-        host_prompt_reason = PROMPT_INFORMATIONAL;
-        host_action_prompt_end();
-        host_action_prompt_begin(PSTR("Pausing..."));
-        host_action_prompt_show();
-      }
+    host_prompt_open(PROMPT_INFO, PSTR("Pause"));
   #endif
+
   if (!DEBUGGING(DRYRUN) && unload_length && thermalManager.targetTooColdToExtrude(active_extruder)) {
     SERIAL_ECHO_MSG(MSG_ERR_HOTEND_TOO_COLD);
 
@@ -434,7 +430,7 @@ void show_continue_prompt(const bool is_reload) {
     )
       host_action_prompt_button(PSTR("DisableRunout"));
     else {
-      host_prompt_reason = PROMPT_FILAMENT_RUNOUT_TRIPPED;
+      host_prompt_reason = PROMPT_FILAMENT_RUNOUT;
       host_action_prompt_button(PSTR("Continue"));
     }
     host_action_prompt_show();
@@ -482,21 +478,16 @@ void wait_for_confirmation(const bool is_reload/*=false*/, const int8_t max_beep
         lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_HEAT);
       #endif
       SERIAL_ECHO_MSG(_PMSG(MSG_FILAMENT_CHANGE_HEAT));
+
       #if ENABLED(HOST_PROMPT_SUPPORT)
-        host_prompt_reason = PROMPT_FILAMENT_RUNOUT_REHEAT;
-        host_action_prompt_end();   // Close current prompt
-        host_action_prompt_begin(PSTR("HeaterTimeout"));
-        host_action_prompt_button(PSTR("Reheat"));
-        host_action_prompt_show();
+        host_prompt_do(PROMPT_FILAMENT_RUNOUT_REHEAT, PSTR("HeaterTimeout"), PSTR("Reheat"));
       #endif
+
       // Wait for LCD click or M108
       while (wait_for_user) idle(true);
 
       #if ENABLED(HOST_PROMPT_SUPPORT)
-        host_prompt_reason = PROMPT_FILAMENT_RUNOUT_REHEAT;
-        host_action_prompt_end();   // Close current prompt
-        host_action_prompt_begin(PSTR("Reheating"));
-        host_action_prompt_show();
+        host_prompt_do(PROMPT_FILAMENT_RUNOUT_REHEAT, PSTR("Reheating"));
       #endif
 
       // Re-enable the heaters if they timed out
@@ -612,12 +603,7 @@ void resume_print(const float &slow_load_length/*=0*/, const float &fast_load_le
   --did_pause_print;
 
   #if ENABLED(HOST_PROMPT_SUPPORT)
-    if( host_prompt_reason == PROMPT_NOT_DEFINED ) {
-      host_prompt_reason = PROMPT_INFORMATIONAL;
-      host_action_prompt_end();
-      host_action_prompt_begin(PSTR("Resuming From Park"));
-      host_action_prompt_show();
-      }
+    host_prompt_open(PROMPT_INFO, PSTR("Resume"));
   #endif
 
   #if ENABLED(SDSUPPORT)
