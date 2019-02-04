@@ -56,6 +56,10 @@
 #include "gcode/parser.h"
 #include "gcode/queue.h"
 
+#if ENABLED(HOST_ACTION_COMMANDS)
+  #include "feature/host_actions.h"
+#endif
+
 #if HAS_BUZZER && DISABLED(LCD_USE_I2C_BUZZER)
   #include "libs/buzzer.h"
 #endif
@@ -315,60 +319,6 @@ void disable_all_steppers() {
   disable_e_steppers();
 }
 
-#if ENABLED(HOST_ACTION_COMMANDS)
-
-  void host_action(const char * const pstr, const bool eol=true) {
-    SERIAL_ECHOPGM("//action:");
-    serialprintPGM(pstr);
-    if (eol) SERIAL_EOL();
-  }
-
-  #ifdef ACTION_ON_KILL
-    void host_action_kill() { host_action(PSTR(ACTION_ON_KILL)); }
-  #endif
-  #ifdef ACTION_ON_PAUSE
-    void host_action_pause(const bool eol/*=true*/) { host_action(PSTR(ACTION_ON_PAUSE), eol); }
-  #endif
-  #ifdef ACTION_ON_PAUSED
-    void host_action_paused(const bool eol/*=true*/) { host_action(PSTR(ACTION_ON_PAUSED), eol); }
-  #endif
-  #ifdef ACTION_ON_RESUME
-    void host_action_resume() { host_action(PSTR(ACTION_ON_RESUME)); }
-  #endif
-  #ifdef ACTION_ON_RESUMED
-    void host_action_resumed() { host_action(PSTR(ACTION_ON_RESUMED)); }
-  #endif
-  #ifdef ACTION_ON_CANCEL
-    void host_action_cancel() { host_action(PSTR(ACTION_ON_CANCEL)); }
-  #endif
-
-  #if ENABLED(HOST_PROMPT_SUPPORT)
-    void host_action_prompt(const char * const ptype, const bool eol=true) {
-      host_action(PSTR("prompt_"), false);
-      serialprintPGM(ptype);
-      if (eol) SERIAL_EOL();
-    }
-    void host_action_prompt_plus(const char * const ptype, const char * const pstr, const bool eol=true) {
-      host_action_prompt(ptype, false);
-      SERIAL_CHAR(' ');
-      serialprintPGM(pstr);
-      if (eol) SERIAL_EOL();
-    }
-    void host_action_prompt_begin(const char * const pstr, const bool eol/*=true*/) { host_action_prompt_plus(PSTR("begin"), pstr, eol); }
-    void host_action_prompt_button(const char * const pstr) { host_action_prompt_plus(PSTR("button"), pstr); }
-    void host_action_prompt_end() { host_action_prompt(PSTR("end")); }
-    void host_action_prompt_show() { host_action_prompt(PSTR("show")); }
-    void host_prompt_do(const PromptReason reason, const char * const pstr, const char * const pbtn/*=NULL*/) {
-      host_prompt_reason = reason;
-      host_action_prompt_end();
-      host_action_prompt_begin(pstr);
-      if (pbtn) host_action_prompt_button(pbtn);
-      host_action_prompt_show();
-    }
-  #endif
-
-#endif  // HOST_ACTION_COMMANDS
-
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
 
   void event_filament_runout() {
@@ -427,6 +377,7 @@ void disable_all_steppers() {
 #endif // FILAMENT_RUNOUT_SENSOR
 
 #if ENABLED(G29_RETRY_AND_RECOVER)
+
   void event_probe_failure() {
     #ifdef G29_FAILURE_COMMANDS
       process_subcommands_now_P(PSTR(G29_FAILURE_COMMANDS));
@@ -453,57 +404,8 @@ void disable_all_steppers() {
       host_action(PSTR(ACTION_ON_G29_RECOVER));
     #endif
   }
+
 #endif
-
-#if ENABLED(HOST_PROMPT_SUPPORT)
-
-  inline void say_m876_response(const char * const pstr) {
-    SERIAL_ECHOPGM("M876 Responding PROMPT_");
-    serialprintPGM(pstr);
-    SERIAL_EOL();
-  }
-
-  PromptReason host_prompt_reason = PROMPT_NOT_DEFINED;
-  void host_response_handler(const PromptReason response) {
-    switch (host_prompt_reason) {
-      case PROMPT_FILAMENT_RUNOUT:
-        if (response == 0)
-          advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;
-        else if (response == 1) {
-          #if ENABLED(FILAMENT_RUNOUT_SENSOR)
-            runout.enabled = false;
-            runout.reset();
-          #endif
-          advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_RESUME_PRINT;
-        }
-        say_m876_response(PSTR("FILAMENT_RUNOUT"));
-        break;
-      case PROMPT_FILAMENT_RUNOUT_CONTINUE:
-        if (response == 0)
-          advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;
-        else if (response == 1)
-          advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_RESUME_PRINT;
-        say_m876_response(PSTR("FILAMENT_RUNOUT_CONTINUE"));
-        break;
-      case PROMPT_FILAMENT_RUNOUT_REHEAT:
-        wait_for_user = false;
-        say_m876_response(PSTR("FILAMENT_RUNOUT_REHEAT"));
-        break;
-      case PROMPT_PAUSE_RESUME:
-        enqueue_and_echo_commands_P(PSTR("M24"));
-        say_m876_response(PSTR("LCD_PAUSE_RESUME"));
-        break;
-      case PROMPT_INFO:
-        say_m876_response(PSTR("GCODE_INFO"));
-        break;
-      default:
-        say_m876_response(PSTR("UNKNOWN STATE"));
-        break;
-    }
-    host_prompt_reason = PROMPT_NOT_DEFINED; // Clear prompt reason after its been handled
-  }
-
-#endif // HOST_PROMPT_SUPPORT
 
 /**
  * Manage several activities:

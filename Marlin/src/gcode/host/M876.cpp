@@ -21,8 +21,9 @@
  */
 #include "../../inc/MarlinConfig.h"
 
-#if DISABLED(EMERGENCY_PARSER) && ENABLED(HOST_PROMPT_SUPPORT)
+#if ENABLED(HOST_PROMPT_SUPPORT) && DISABLED(EMERGENCY_PARSER)
 
+#include "../../feature/host_actions.h"
 #include "../gcode.h"
 #include "../../Marlin.h"
 
@@ -33,4 +34,4 @@ void GcodeSuite::M876() {
   if (parser.seenval('S')) host_response_handler((PromptReason)parser.value_int());
 }
 
-#endif // !EMERGENCY_PARSER && HOST_PROMPT_SUPPORT
+#endif // HOST_PROMPT_SUPPORT && !EMERGENCY_PARSER

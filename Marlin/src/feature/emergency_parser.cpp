@@ -35,7 +35,7 @@ bool EmergencyParser::killed_by_M112, // = false
      EmergencyParser::enabled;
 
 #if ENABLED(HOST_PROMPT_SUPPORT)
-  char EmergencyParser::M876_SChar = '0';
+  PromptReason EmergencyParser::M876_reason; // = 0
 #endif
 
 // Global instance

@@ -42,6 +42,10 @@
   #include "../../sd/cardreader.h"
 #endif
 
+#if ENABLED(HOST_ACTION_COMMANDS)
+  #include "../../feature/host_actions.h"
+#endif
+
 void lcd_pause() {
   #if ENABLED(POWER_LOSS_RECOVERY)
     if (recovery.enabled) recovery.save(true, false);

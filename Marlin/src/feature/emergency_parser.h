@@ -27,6 +27,10 @@
 
 #define FORCE_INLINE __attribute__((always_inline)) inline
 
+#if ENABLED(HOST_PROMPT_SUPPORT)
+  #include "host_actions.h"
+#endif
+
 // External references
 extern volatile bool wait_for_user, wait_for_heatup;
 void quickstop_stepper();
@@ -62,7 +66,7 @@ public:
   static bool killed_by_M112;
 
   #if ENABLED(HOST_PROMPT_SUPPORT)
-    static char M876_SChar;
+    static PromptReason M876_reason;
   #endif
 
   EmergencyParser() { enable(); }
@@ -148,11 +152,13 @@ public:
 
       case EP_M876S:
         switch (c) {
+          case ' ': break;
           case '0': case '1': case '2':
           case '3': case '4': case '5':
           case '6': case '7': case '8':
-          case '9':   state = EP_M876SN;
-            M876_SChar = c;
+          case '9':
+            state = EP_M876SN;
+            M876_reason = (PromptReason)(c - '0');
             break;
         }
         break;
@@ -169,7 +175,7 @@ public:
             case EP_M112: killed_by_M112 = true; break;
             case EP_M410: quickstop_stepper(); break;
             #if ENABLED(HOST_PROMPT_SUPPORT)
-              case EP_M876SN: host_response_handler(M876_SChar - '0'); break;
+              case EP_M876SN: host_response_handler(M876_reason); break;
             #endif
             default: break;
           }

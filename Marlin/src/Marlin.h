@@ -370,47 +370,6 @@ void protected_pin_err();
   inline void suicide() { OUT_WRITE(SUICIDE_PIN, LOW); }
 #endif
 
-#if ENABLED(HOST_ACTION_COMMANDS)
-  #ifdef ACTION_ON_KILL
-    void host_action_kill();
-  #endif
-  #ifdef ACTION_ON_PAUSE
-    void host_action_pause(const bool eol=true);
-  #endif
-  #ifdef ACTION_ON_PAUSED
-    void host_action_paused(const bool eol=true);
-  #endif
-  #ifdef ACTION_ON_RESUME
-    void host_action_resume();
-  #endif
-  #ifdef ACTION_ON_RESUMED
-    void host_action_resumed();
-  #endif
-  #ifdef ACTION_ON_CANCEL
-    void host_action_cancel();
-  #endif
-  #if ENABLED(HOST_PROMPT_SUPPORT)
-    enum PromptReason : uint8_t {
-      PROMPT_NOT_DEFINED,
-      PROMPT_FILAMENT_RUNOUT,
-      PROMPT_FILAMENT_RUNOUT_CONTINUE,
-      PROMPT_FILAMENT_RUNOUT_REHEAT,
-      PROMPT_PAUSE_RESUME,
-      PROMPT_INFO
-    };
-    extern PromptReason host_prompt_reason;
-    void host_response_handler(const PromptReason response);
-    void host_action_prompt_begin(const char * const pstr, const bool eol=true);
-    void host_action_prompt_button(const char * const pstr);
-    void host_action_prompt_end();
-    void host_action_prompt_show();
-    void host_prompt_do(const PromptReason type, const char * const pstr, const char * const pbtn=NULL);
-    inline void host_prompt_open(const PromptReason reason, const char * const pstr, const char * const pbtn=NULL) {
-      if (host_prompt_reason == PROMPT_NOT_DEFINED) host_prompt_do(reason, pstr, pbtn);
-    }
-  #endif
-#endif
-
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
   void event_filament_runout();
 #endif

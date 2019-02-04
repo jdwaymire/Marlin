@@ -45,6 +45,10 @@
   #include "runout.h"
 #endif
 
+#if ENABLED(HOST_ACTION_COMMANDS)
+  #include "host_actions.h"
+#endif
+
 #include "../lcd/ultralcd.h"
 #include "../libs/buzzer.h"
 #include "../libs/nozzle.h"
@@ -321,13 +325,15 @@ bool pause_print(const float &retract, const point_t &park_point, const float &u
 
   if (did_pause_print) return false; // already paused
 
-  #ifdef ACTION_ON_PAUSED
-    host_action_paused();
-  #elif defined(ACTION_ON_PAUSE)
-    host_action_pause();
-  #endif
-  #if ENABLED(HOST_PROMPT_SUPPORT)
-    host_prompt_open(PROMPT_INFO, PSTR("Pause"));
+  #if ENABLED(HOST_ACTION_COMMANDS)
+    #ifdef ACTION_ON_PAUSED
+      host_action_paused();
+    #elif defined(ACTION_ON_PAUSE)
+      host_action_pause();
+    #endif
+    #if ENABLED(HOST_PROMPT_SUPPORT)
+      host_prompt_open(PROMPT_INFO, PSTR("Pause"));
+    #endif
   #endif
 
   if (!DEBUGGING(DRYRUN) && unload_length && thermalManager.targetTooColdToExtrude(active_extruder)) {
