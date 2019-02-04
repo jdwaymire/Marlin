@@ -1936,22 +1936,22 @@
 #endif
 
 /**
- * Action Command Support
- * Defines host streamer action commands in compliance with standards on RepRap Wiki
- * https://reprap.org/wiki/G-code#Action_commands
- * Including : poweroff, pause, paused, resume, resumed, and cancel
- * If G29 retry and recover is enabled, add probe_rewipe and probe_failed
+ * Host Action Commands
+ *
+ * Define host streamer action commands in compliance with the standard.
+ *
+ * See https://reprap.org/wiki/G-code#Action_commands
+ * Common commands ........ poweroff, pause, paused, resume, resumed, cancel
+ * G29_RETRY_AND_RECOVER .. probe_rewipe, probe_failed
  * 
- * Certain features may add reason codes to extend the commands above when supported.
+ * Some features add reason codes to extend these commands.
  * 
- * Host Prompt Support allows setting dialogs for responses to actions typically
- * reserved for handling on the local LCD in combination with the emergency parser
- * This allows filament runout and other parking actions to be resolved from either
- * the host or machine side.
+ * Host Prompt Support enables Marlin to use the host for user prompts so
+ * filament runout and other processes can be managed from the host side.
  */
 //#define HOST_ACTION_COMMANDS
 #if ENABLED(HOST_ACTION_COMMANDS)
-  #define HOST_PROMPT_SUPPORT
+  //#define HOST_PROMPT_SUPPORT
 #endif
 
 //===========================================================================
